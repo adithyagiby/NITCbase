@@ -4,79 +4,111 @@
 unsigned char StaticBuffer :: blocks[BUFFER_CAPACITY][BLOCK_SIZE];
 struct BufferMetaInfo StaticBuffer :: metainfo[BUFFER_CAPACITY];
 
+// _______stage-7_________________________
+unsigned char StaticBuffer::blockAllocMap[DISK_BLOCKS];
+
 StaticBuffer :: StaticBuffer() //constructor
 {	
+	//stage-7
+	for (int i=0; i<4; i++)
+	{
+		Disk::readBlock(blockAllocMap + i*BLOCK_SIZE, i);
+	}
 	//initialise all the blocks free
+	//stage-6
 	for (int i=0; i<BUFFER_CAPACITY; i++)
 	{
 		metainfo[i].free = true;
-		metainfo[i].dirty=false;
-		metainfo[i].timeStamp=-1;
-		metainfo[i].blockNum=-1;
+		metainfo[i].dirty = false;
+		metainfo[i].timeStamp = -1;
+		metainfo[i].blockNum = -1;
 	}
 }
 
-StaticBuffer::~StaticBuffer(){
-    /*
-        Iterate through all the buffer block,
-        write back blocks with metainfo as free = false, dirty = true using Disk::writeBlock()
-    */
-    for(int bufferIndex = 0; bufferIndex < BUFFER_CAPACITY; bufferIndex++){
-        if(metainfo[bufferIndex].free == false && metainfo[bufferIndex].dirty == true){
-            Disk::writeBlock(StaticBuffer:: blocks[bufferIndex], metainfo[bufferIndex].blockNum);
-        }
-    }
+StaticBuffer :: ~StaticBuffer()
+{
+
+	for (int i=0; i<4; i++)
+	{
+		Disk::writeBlock(blockAllocMap + i*BLOCK_SIZE, i);
+	}
+
+/*	
+	iterate through all the buffer blocks,
+    write back blocks with metainfo as free=false,dirty=true
+    using Disk::writeBlock()
+*/
+
+	for (int i=0; i<BUFFER_CAPACITY; i++)
+	{
+		if (!metainfo[i].free && metainfo[i].dirty)
+		{
+			Disk::writeBlock(StaticBuffer::blocks[i], metainfo[i].blockNum);
+		}
+	}
+
 }	//deconstructor
 
-int StaticBuffer::getFreeBuffer(int blockNum){
-    // Check if blockNum is valid (non zero and less than DISK_BLOCKS)
-    // and return E_OUTOFBOUND if not valid.
-    if (blockNum<0 || blockNum>=DISK_BLOCKS){
-    	return E_OUTOFBOUND;
-    }
-	int bufferNum=-1,bufferWithMaxTimeStamp=-1,maxTimeStamp=0;
-    // increase the timeStamp in metaInfo of all occupied buffers.
+//implemented using LRU, never fails, always assigns a block number, timestamp is reset to 0
+//updates metainfo asw
+//
+int StaticBuffer::getFreeBuffer(int blockNum)
+{
+	if (blockNum < 0 || blockNum >= DISK_BLOCKS) //if its a valid block num
+	{
+		return E_OUTOFBOUND;
+	}
 
 
-    // iterate through metainfo and check if there is any buffer free
+	// increase the timeStamp in metaInfo of all occupied buffers.
+    // let bufferNum be used to store the buffer number of the free/freed buffer.
+	int bufferNum=-1, bufferWithMaxTime=-1, maxTimeStamp=-1;
+	for (int i=0; i<BUFFER_CAPACITY; i++)
+	{
+		if (!metainfo[i].free)
+		{
+			metainfo[i].timeStamp++;
+		}
+	}
 
-    // if a free buffer is available, set bufferNum = index of that free buffer.
+	for (int i=0; i<BUFFER_CAPACITY; i++)
+	{
+		if (metainfo[i].free && bufferNum == -1)
+		{
+			bufferNum = i;
+			break;
+		}
+ 	}
 
-    // if a free buffer is not available,
-    //     find the buffer with the largest timestamp
-    //     IF IT IS DIRTY, write back to the disk using Disk::writeBlock()
-    //     set bufferNum = index of this buffer
-    for (int bufferIndex=0;bufferIndex<BUFFER_CAPACITY;bufferIndex++){
-    	if (metainfo[bufferIndex].free==false){
-    		metainfo[bufferIndex].timeStamp+=1;
+	if (bufferNum == -1)
+	{
+		maxTimeStamp = -1;
+		for (int i=0; i<BUFFER_CAPACITY; i++)
+		{
+			if (maxTimeStamp < metainfo[i].timeStamp)
+			{
+				bufferNum = i;
+				maxTimeStamp = metainfo[i].timeStamp;
+			}
+		}
+		if (metainfo[bufferNum].dirty)
+		{
+			Disk::writeBlock(StaticBuffer::blocks[bufferNum], metainfo[bufferNum].blockNum);
+		}
+	}
+	
 
-    		if (maxTimeStamp<metainfo[bufferIndex].timeStamp){
-    			bufferWithMaxTimeStamp=bufferIndex;
-    			maxTimeStamp=metainfo[bufferIndex].timeStamp;
-    		}
-    	}
-    	if (metainfo[bufferIndex].free==true && bufferNum==-1){
-    		bufferNum=bufferIndex;
-    	}
-    }
-    if (bufferNum==-1){
-    	if (metainfo[bufferWithMaxTimeStamp].dirty==true){
-    		Disk::writeBlock(StaticBuffer::blocks[bufferWithMaxTimeStamp],metainfo[bufferWithMaxTimeStamp].blockNum);
-    	}
-    	bufferNum=bufferWithMaxTimeStamp;
-    }
-    // return the bufferNum.
-    metainfo[bufferNum].free=false;
-    metainfo[bufferNum].dirty=false;
-    metainfo[bufferNum].blockNum=blockNum;
-    metainfo[bufferNum].timeStamp=0;
-
-    return bufferNum;
+	
+	metainfo[bufferNum].free = false;
+	metainfo[bufferNum].dirty = false;
+	metainfo[bufferNum].timeStamp = 0;
+	metainfo[bufferNum].blockNum = blockNum;
+	return bufferNum;
 }
 
 int StaticBuffer::getBufferNum(int blockNum)
 {
-	if (blockNum < 0 || blockNum > DISK_BLOCKS)
+	if (blockNum < 0 || blockNum >= DISK_BLOCKS)
 	{
 		return E_OUTOFBOUND;
 	}
@@ -93,14 +125,23 @@ int StaticBuffer::getBufferNum(int blockNum)
 
 }
 
-int StaticBuffer::setDirtyBit(int blockNum){
-	int bufferNum=StaticBuffer::getBufferNum(blockNum);
-	if (bufferNum==E_BLOCKNOTINBUFFER){
+
+int StaticBuffer::setDirtyBit(int blockNum)
+{
+	int bufferIdx = getBufferNum(blockNum);
+	if (bufferIdx == E_BLOCKNOTINBUFFER)
+	{
 		return E_BLOCKNOTINBUFFER;
 	}
-	if (bufferNum==E_OUTOFBOUND){
+
+	if (bufferIdx == E_OUTOFBOUND)
+	{
 		return E_OUTOFBOUND;
-	}
-	metainfo[bufferNum].dirty=true;
+	}	
+	metainfo[bufferIdx].dirty = true;
+	
 	return SUCCESS;
+	
 }
+
+

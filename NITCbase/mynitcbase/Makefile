@@ -1,10 +1,10 @@
 ifeq ($(mode),debug)
-	CFLAGS := -g
-	BUILD_DIR = ./build/debug
-	TARGET = nitcbase-debug
+        CFLAGS := -g
+        BUILD_DIR = ./build/debug
+        TARGET = nitcbase-debug
 else
-	TARGET = nitcbase
-	BUILD_DIR = ./build
+        TARGET = nitcbase
+        BUILD_DIR = ./build
 endif
 
 SUBDIR = FrontendInterface Frontend Algebra Schema BlockAccess BPlusTree Cache Buffer Disk_Class
@@ -14,11 +14,11 @@ SRCS = $(wildcard main.cpp $(foreach fd, $(SUBDIR), $(fd)/*.cpp))
 OBJS = $(addprefix $(BUILD_DIR)/, $(SRCS:cpp=o))
 
 $(TARGET): $(OBJS)
-	g++ $(CFLAGS) -o $@ $(OBJS) -lreadline
+		g++ $(CFLAGS) -no-pie -o $@ $(OBJS) -lreadline
 
 $(BUILD_DIR)/%.o: %.cpp $(HEADERS)
-	mkdir -p $(@D)
-	g++ $(CFLAGS) -o $@ -c $<
+		mkdir -p $(@D)
+		g++ $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -rf $(BUILD_DIR)/*
+		rm -rf $(BUILD_DIR)/*

@@ -222,7 +222,8 @@ int RegexHandler::insertFromFileHandler() {
   char relName[ATTR_SIZE];
   attrToTruncatedArray(m[1], relName);
 
-  string filePath = string(INPUT_FILES_PATH) + m[2].str();
+  // string filePath = string(INPUT_FILES_PATH) + m[2].str();
+  string filePath = m[2].str();
   std::cout << "File path: " << filePath << endl;
 
   ifstream file(filePath);

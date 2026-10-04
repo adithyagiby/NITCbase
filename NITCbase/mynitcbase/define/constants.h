@@ -4,7 +4,7 @@
 #define DISK_PATH "../Disk/disk"                            // Path to disk
 #define DISK_RUN_COPY_PATH "../Disk/disk_run_copy"          // Path to run copy of the disk
 #define Files_Path "../Files/"                              // Path to Files directory
-#define INPUT_FILES_PATH "../Files/Input_Files/"            // Path to Input_Files directory inside the Files directory
+#define INPUT_FILES_PATH "/Files/Input_Files/"            // Path to Input_Files directory inside the Files directory
 #define OUTPUT_FILES_PATH "../Files/Output_Files/"          // Path to Output_Files directory inside the Files directory
 #define BATCH_FILES_PATH "../Files/Batch_Execution_Files/"  // Path to Batch_Execution_Files directory inside the Files directory
 

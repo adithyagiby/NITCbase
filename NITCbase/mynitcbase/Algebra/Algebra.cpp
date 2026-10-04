@@ -120,3 +120,61 @@ bool isNumber(char *str)
 	int ret = sscanf(str, "%f %n", &ignore, &len);
 	return ret == 1 && len == strlen(str);
 } 
+
+
+// ________stage-7________________-
+int Algebra::insert(char relName[ATTR_SIZE], int nAttrs, char record[][ATTR_SIZE])
+{
+	if (strcmp(relName, "RELATIONCAT") == 0 || strcmp(relName, "ATTRIBUTECAT")==0)
+	{
+		return E_NOTPERMITTED;
+	}
+
+	//get rel id
+	int relId = OpenRelTable::getRelId(relName);
+
+	//if not open
+	if (relId == E_RELNOTOPEN)
+	{
+		return E_RELNOTOPEN;
+	}
+
+	//get the relcat entry using the fn
+	RelCatEntry relCatEntry;
+	RelCacheTable::getRelCatEntry(relId, &relCatEntry);
+
+	//if they have different number of attributes
+	if (relCatEntry.numAttrs != nAttrs)
+	{
+		return E_NATTRMISMATCH;
+	}
+
+	Attribute recordValues[nAttrs];
+	//converting 2d array to attribyte array record values
+
+	for (int i=0; i<nAttrs; i++)
+	{
+		AttrCatEntry attrCatEntry;
+		AttrCacheTable::getAttrCatEntry(relId, i, &attrCatEntry);
+		int type = attrCatEntry.attrType;
+		
+		if (type == NUMBER)
+		{
+			if (isNumber(record[i]))
+			{
+				recordValues[i].nVal = atof(record[i]);
+			}
+			else
+			{
+				return E_ATTRTYPEMISMATCH;
+			}
+		}
+		else if (type == STRING)
+		{
+			strcpy(recordValues[i].sVal, record[i]);
+		}
+	}
+	int retVal =BlockAccess::insert(relId, recordValues);
+	return retVal;
+
+}
