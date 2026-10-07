@@ -275,44 +275,53 @@ int BlockBuffer::setBlockType(int blockType)
 	res = StaticBuffer::setDirtyBit(this->blockNum);
 	return res;
 }
-
 int BlockBuffer::getFreeBlock(int blockType)
 {
-	//find first free block in 8192 blocks
-	int freeBlock = -1;
-	for (int i=0; i<DISK_BLOCKS; i++)
-	{
-		if (StaticBuffer::blockAllocMap[i] == UNUSED_BLK)
-		{
-			freeBlock = i;
-		}
-	}
-	
-	if (freeBlock == -1)
-	{
-		return E_DISKFULL;
-	}
+    int freeBlock = -1;
 
+    for (int i = 0; i < DISK_BLOCKS; i++)
+    {
+        if (StaticBuffer::blockAllocMap[i] == UNUSED_BLK)
+        {
+            freeBlock = i;
+            break;
+        }
+    }
 
-	//all functions happen with this free block
-	this->blockNum = freeBlock;
-	int bufferNum = StaticBuffer::getFreeBuffer(freeBlock);
+    if (freeBlock == -1)
+    {
+        return E_DISKFULL;
+    }
 
-	//init the head of the new block
-	struct HeadInfo head;
-	head.pblock=-1;
-	head.rblock=-1;
-	head.lblock=-1;
-	head.numAttrs=0;
-	head.numEntries=0;
-	head.numSlots=0;
+    this->blockNum = freeBlock;
 
-	BlockBuffer::setHeader(&head);
+    struct HeadInfo head;
 
-	//update blocktype
-	BlockBuffer::setBlockType(blockType);
+    head.blockType = blockType;
+    head.pblock = -1;
+    head.rblock = -1;
+    head.lblock = -1;
+    head.numAttrs = 0;
+    head.numEntries = 0;
+    head.numSlots = 0;
 
-	return freeBlock;
+    int ret = BlockBuffer::setHeader(&head);
+
+    if (ret != SUCCESS)
+    {
+        return ret;
+    }
+
+    StaticBuffer::blockAllocMap[freeBlock] = blockType;
+
+    ret = StaticBuffer::setDirtyBit(this->blockNum);
+
+    if (ret != SUCCESS)
+    {
+        return ret;
+    }
+
+    return freeBlock;
 }
 
 
@@ -347,4 +356,19 @@ int RecBuffer::setSlotMap(unsigned char *slotMap)
 
 	ret = StaticBuffer::setDirtyBit(this->blockNum);
 	return ret;
+}
+
+void BlockBuffer::releaseBlock()
+{
+    if (this->blockNum != INVALID_BLOCKNUM)
+    {
+        int bufferNum = StaticBuffer::getBufferNum(this->blockNum);
+
+        if (bufferNum != E_BLOCKNOTINBUFFER)
+        {
+            StaticBuffer::metainfo[bufferNum].free = true;
+        }
+
+        this->blockNum = INVALID_BLOCKNUM;
+    }
 }
