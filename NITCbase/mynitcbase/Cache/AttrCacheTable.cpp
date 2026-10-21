@@ -118,7 +118,7 @@ int AttrCacheTable::getSearchIndex(int relId,int attrOffset, IndexId *searchInde
 
   for(AttrCacheEntry *entry=attrCache[relId];entry!=nullptr;entry=entry->next)
   {
-    if (entry->attrCatEntry.offset=attrOffset)
+    if (entry->attrCatEntry.offset==attrOffset)
     {
       *searchIndex=entry->searchIndex;
       return SUCCESS;
@@ -162,7 +162,7 @@ int AttrCacheTable::setSearchIndex(int relId, int attrOffset, IndexId *searchInd
 
   for(AttrCacheEntry *entry=attrCache[relId];entry!=nullptr;entry=entry->next)
   {
-    if (entry->attrCatEntry.offset=attrOffset)
+    if (entry->attrCatEntry.offset==attrOffset)
     {
       entry->searchIndex=*searchIndex;
       return SUCCESS;
@@ -182,4 +182,40 @@ int AttrCacheTable::resetSearchIndex(int relId, int attrOffset) {
 
   IndexId searchIndex={-1,-1};
   return AttrCacheTable::setSearchIndex(relId,attrOffset,&searchIndex);
+}
+
+int AttrCacheTable::setAttrCatEntry(int relId,char attrName[ATTR_SIZE],AttrCatEntry *attrCatBuf){
+	if (relId<0 || relId>=MAX_OPEN){
+		return E_OUTOFBOUND;
+	}
+	if (attrCache[relId]==nullptr){
+		return E_RELNOTOPEN;
+	}
+	for(AttrCacheEntry *entry=attrCache[relId];entry!=nullptr;entry=entry->next){
+		if (strcmp(entry->attrCatEntry.attrName,attrName)==0){
+			entry->attrCatEntry=*attrCatBuf;
+			entry->dirty=true;
+
+			return SUCCESS;
+		}
+	}
+	return E_ATTRNOTEXIST;
+}
+
+int AttrCacheTable::setAttrCatEntry(int relId,int attrOffset,AttrCatEntry *attrCatBuf){
+	if (relId<0 || relId>=MAX_OPEN){
+		return E_OUTOFBOUND;
+	}
+	if (attrCache[relId]==nullptr){
+		return E_RELNOTOPEN;
+	}
+	for (AttrCacheEntry *entry=attrCache[relId];entry!=nullptr;entry=entry->next){
+		if (entry->attrCatEntry.offset==attrOffset){
+			entry->attrCatEntry=*attrCatBuf;
+			entry->dirty=true;
+
+			return SUCCESS;
+		}
+	}
+	return E_ATTRNOTEXIST;
 }
