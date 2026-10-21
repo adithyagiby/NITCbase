@@ -1,11 +1,15 @@
 #include "Algebra.h"
-
+#include <iostream>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 
+extern int comparisoncount;
+
 bool isNumber(char *str);
 
+
+// SELECT
 int Algebra::select(char srcRel[ATTR_SIZE],
                     char targetRel[ATTR_SIZE],
                     char attr[ATTR_SIZE],
@@ -88,6 +92,9 @@ int Algebra::select(char srcRel[ATTR_SIZE],
 
     Attribute record[src_nAttrs];
 
+    // Reset the comparison counter before SELECT begins.
+    comparisoncount = 0;
+
     RelCacheTable::resetSearchIndex(srcRelId);
     AttrCacheTable::resetSearchIndex(srcRelId, attr);
 
@@ -107,6 +114,10 @@ int Algebra::select(char srcRel[ATTR_SIZE],
         }
     }
 
+    // Print comparisons after SELECT finishes.
+    std::cout << "Number of comparisons: "
+              << comparisoncount << std::endl;
+
     Schema::closeRel(targetRel);
 
     return SUCCESS;
@@ -125,7 +136,7 @@ bool isNumber(char *str)
 }
 
 
-// Stage 7: INSERT
+// INSERT
 int Algebra::insert(char relName[ATTR_SIZE],
                     int nAttrs,
                     char record[][ATTR_SIZE])

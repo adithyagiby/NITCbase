@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <cstring>
 
+int comparisoncount=0;
+
 BlockBuffer::BlockBuffer(char blockType)
 {
     int intBlockType;
@@ -165,6 +167,7 @@ int RecBuffer::getSlotMap(unsigned char *slotMap)
 
 int compareAttrs(union Attribute attr1, union Attribute attr2, int attrType)
 {
+	comparisoncount++;
 	double diff;
 
 	if (attrType == STRING)
